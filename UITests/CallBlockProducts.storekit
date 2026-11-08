@@ -1,0 +1,60 @@
+{
+  "identifier": "F1BC56D9-4522-4E86-93AB-AF2000000003",
+  "nonRenewingSubscriptions": [],
+  "products": [],
+  "settings": {
+    "_applicationInternalID": "6832368460",
+    "_developerTeamID": "F3639777XM",
+    "_failTransactionsEnabled": false,
+    "_locale": "en_US",
+    "_storefront": "USA",
+    "_storeKitErrors": [],
+    "_timeRate": 0
+  },
+  "subscriptionGroups": [
+    {
+      "id": "22559518",
+      "localizations": [
+        {
+          "description": "Telephone call blocking",
+          "displayName": "CallBlock Pro Premium",
+          "locale": "en_US"
+        }
+      ],
+      "name": "CallBlock Pro Premium",
+      "subscriptions": [
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "19.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "6832379665",
+          "introductoryOffer": {
+            "internalID": "A4CC00BB-1234-4567-8901-000000000003",
+            "numberOfPeriods": 1,
+            "paymentMode": "free",
+            "subscriptionPeriod": "P3D"
+          },
+          "localizations": [
+            {
+              "description": "Activate your iOS telephone call blocking list.",
+              "displayName": "CallBlock Pro Annual",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "callblockpro.annual",
+          "recurringSubscriptionPeriod": "P1Y",
+          "referenceName": "CallBlock Pro Annual",
+          "subscriptionGroupID": "22559518",
+          "type": "RecurringSubscription",
+          "winBackOffers": []
+        }
+      ]
+    }
+  ],
+  "version": {
+    "major": 3,
+    "minor": 0
+  }
+}

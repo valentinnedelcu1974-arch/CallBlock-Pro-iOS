@@ -1,4 +1,4 @@
-name: CallBlock review build 3 captures and tests
+name: CallBlock build 3 StoreKit tests and real captures
 on:
   push:
     branches: [main]

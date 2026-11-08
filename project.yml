@@ -60,7 +60,11 @@ targets:
   CallBlockProUITests:
     type: bundle.ui-testing
     platform: iOS
-    sources: [UITests]
+    sources:
+      - path: UITests
+        excludes: [CallBlockProducts.storekit]
+      - path: UITests/CallBlockProducts.storekit
+        buildPhase: resources
     dependencies:
       - target: CallBlockPro
     settings:
