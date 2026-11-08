@@ -8,6 +8,10 @@ permissions:
   contents: write
 jobs:
   screenshots:
+    strategy:
+      fail-fast: false
+      matrix:
+        device: [iphone, ipad]
     runs-on: macos-15
     timeout-minutes: 20
     steps:
@@ -21,7 +25,8 @@ jobs:
           sudo xcode-select -s "$XCODE_APP/Contents/Developer"
           brew install xcodegen
           xcodegen generate
-          SIMULATOR_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); all=[x for a in d["devices"].values() for x in a]; names=["iPhone 16 Pro Max","iPhone 17 Pro Max","iPhone 16 Plus","iPhone 15 Plus"]; print(next(x["udid"] for n in names for x in all if x["name"]==n))')
+          xcrun simctl list devices available
+          SIMULATOR_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); all=[x for a in d["devices"].values() for x in a]; names=["iPhone 16 Pro","iPhone 17 Pro","iPhone 15 Pro","iPhone 16"]; matches=[x for n in names for x in all if x["name"]==n] if sys.argv[1]=="iphone" else [x for x in all if "iPad Pro" in x["name"] and "13-inch" in x["name"]]; print(matches[0]["udid"])' '${{ matrix.device }}')
           echo "SIMULATOR_ID=$SIMULATOR_ID" >> "$GITHUB_ENV"
       - name: Capture actual running application
         run: |
@@ -36,12 +41,13 @@ jobs:
       - name: Publish unchanged screenshot attachments
         env:
           GH_TOKEN: ${{ github.token }}
+          CAPTURE_DEVICE: ${{ matrix.device }}
         run: |
           python3 - <<'PY'
           import os,json,base64,urllib.request
           from pathlib import Path
           for i,p in enumerate(sorted(Path('appstore-screenshots').rglob('*.png'))):
-              url='https://api.github.com/repos/valentinnedelcu1974-arch/CallBlock-Pro-iOS/contents/docs/screenshots/CallBlock-Help-'+str(i)+'.png'
+              url='https://api.github.com/repos/valentinnedelcu1974-arch/CallBlock-Pro-iOS/contents/docs/screenshots/CallBlock-'+os.environ['CAPTURE_DEVICE']+'-Help-'+str(i)+'.png'
               payload={'message':'Publish actual CallBlock help-screen capture','content':base64.b64encode(p.read_bytes()).decode(),'branch':'main'}
               req=urllib.request.Request(url,data=json.dumps(payload).encode(),headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json'},method='PUT')
               with urllib.request.urlopen(req) as response: result=json.load(response)
@@ -49,7 +55,7 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: CallBlockPro-real-AppStore-screenshots
+          name: CallBlockPro-real-AppStore-screenshots-${{ matrix.device }}
           path: appstore-screenshots
           if-no-files-found: error
           retention-days: 7
