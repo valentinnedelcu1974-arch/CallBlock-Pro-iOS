@@ -7,7 +7,7 @@ settings:
     SWIFT_VERSION: '5.9'
     TARGETED_DEVICE_FAMILY: '1'
     MARKETING_VERSION: '1.1'
-    CURRENT_PROJECT_VERSION: '1'
+    CURRENT_PROJECT_VERSION: '2'
     DEVELOPMENT_TEAM: F3639777XM
     INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
 targets:
@@ -18,7 +18,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.callblockpro.app
-        GENERATE_INFOPLIST_FILE: YES
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Config/AppInfo.plist
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: CallBlock Pro
         CODE_SIGN_ENTITLEMENTS: App/CallBlockPro.entitlements
