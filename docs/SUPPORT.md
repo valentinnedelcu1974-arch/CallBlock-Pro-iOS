@@ -17,6 +17,6 @@ Only complete numbers are supported. A country prefix is not a wildcard. The app
 
 The extension needs a physical iPhone and must be enabled by you. If refreshing fails, confirm the extension is enabled, restart the app and retry. Report the exact iOS error to support if it persists.
 
-Manual number management does not require a subscription. If Apple does not offer a subscription, the app says so. Any available purchase uses Apple's confirmation sheet; restore uses the same Apple Account that made the purchase. Manage subscriptions in your Apple Account settings.
+Downloading the app and preparing or editing a saved number list are free. Activating iOS call blocking requires an active CallBlock Pro Annual subscription, including an eligible introductory free trial. Eligible new subscribers receive 3 days free, then the annual subscription renews at the localized price confirmed by Apple (US base price: $19.99/year). Cancel through your Apple Account before the trial ends to avoid the annual charge. Apple determines introductory-offer eligibility. Restore uses the same Apple Account that made the purchase. Manage or cancel subscriptions in your Apple Account settings.
 
 [Privacy Policy](PRIVACY.md)

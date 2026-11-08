@@ -14,6 +14,7 @@ struct ContentView: View {
     @State private var message = "Enable CallBlock Pro in iPhone Phone settings, then refresh your blocking list."
     @State private var products: [Product] = []
     @State private var isSubscribed = false
+    @State private var trialEligible = false
     @State private var extensionEnabled = false
     @State private var refreshing = false
     @State private var refreshPending = false
@@ -72,16 +73,20 @@ struct ContentView: View {
                     Button("WhatsApp calls") { inputFocused = false; help = .whatsapp }
                 }
                 Section("Subscription") {
-                    Text("Manual number management is available without a subscription. Apple's purchase sheet shows the available price and terms.").font(.footnote)
+                    Text("Prepare your number list for free. Activating telephone call blocking requires an active subscription, including an eligible free trial.").font(.footnote)
                     if isSubscribed { Label("Subscription active", systemImage: "checkmark.seal.fill") }
                     else if let product = products.first {
-                        Button("Subscribe: \(product.displayPrice)/year") { Task { await purchase(product) } }.disabled(storeBusy)
+                        Text(trialEligible ? "3 days free, then \(product.displayPrice) per year. Renews automatically unless cancelled in your Apple Account before the trial ends." : "\(product.displayPrice) per year. Renews automatically unless cancelled in your Apple Account before renewal.").font(.footnote)
+                        Button(trialEligible ? "Start 3-day free trial" : "Subscribe: \(product.displayPrice)/year") { Task { await purchase(product) } }.disabled(storeBusy)
                     } else {
                         Button(storeBusy ? "Checking availability…" : "Check subscription availability") { Task { await loadProducts() } }.disabled(storeBusy)
                     }
                     Button("Restore purchases") { Task { await restore() } }.disabled(storeBusy)
                     if !storeMessage.isEmpty { Text(storeMessage).font(.footnote).accessibilityIdentifier("storeMessage") }
                     Link("Manage Apple subscriptions", destination: URL(string: "https://apps.apple.com/account/subscriptions")!)
+                    Link("Privacy Policy", destination: URL(string: "https://github.com/valentinnedelcu1974-arch/CallBlock-Pro-iOS/blob/main/docs/PRIVACY.md")!)
+                    Link("Terms of Use", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+                    Link("Support", destination: URL(string: "https://github.com/valentinnedelcu1974-arch/CallBlock-Pro-iOS/blob/main/docs/SUPPORT.md")!)
                 }
             }
             .navigationTitle("CallBlock Pro")
@@ -93,7 +98,15 @@ struct ContentView: View {
                         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { help = nil } } }
                 }.presentationDetents([.medium, .large])
             }
-            .task { checkExtension(); await loadProducts(); await checkEntitlements() }
+            .task { checkExtension(); await checkEntitlements(); await loadProducts() }
+            .task {
+                for await result in Transaction.updates {
+                    guard case .verified(let transaction) = result, transaction.productID == productID else { continue }
+                    await checkEntitlements()
+                    await transaction.finish()
+                    refresh()
+                }
+            }
             .onChange(of: scenePhase) { _, phase in if phase == .active { numbers = BlockStore.numbers(); checkExtension(); Task { await checkEntitlements() } } }
         }
     }
@@ -129,7 +142,7 @@ struct ContentView: View {
         CXCallDirectoryManager.sharedInstance.reloadExtension(withIdentifier: extensionID) { error in
             DispatchQueue.main.async {
                 refreshing = false
-                message = error.map { "Your list is saved. iOS could not refresh blocking: \($0.localizedDescription). Enable the extension in Phone settings and try again." } ?? "Blocking list refreshed: \(numbers.count) saved number(s)."
+                message = error.map { "Your list is saved. iOS could not refresh blocking: \($0.localizedDescription). Enable the extension in Phone settings and try again." } ?? (isSubscribed ? "Blocking list refreshed: \(numbers.count) saved number(s)." : "List saved. Start a trial or subscribe to activate telephone blocking.")
                 checkExtension()
                 if refreshPending { refreshPending = false; refresh() }
             }
@@ -140,16 +153,27 @@ struct ContentView: View {
         defer { storeBusy = false }
         do {
             products = try await Product.products(for: [productID])
-            storeMessage = products.isEmpty ? "No subscription is currently available from Apple. You can continue managing numbers without purchasing." : "Price and subscription terms are confirmed by Apple before payment."
+            if let info = products.first?.subscription,
+               let offer = info.introductoryOffer,
+               offer.paymentMode == .freeTrial,
+               offer.period.unit == .day, offer.period.value == 3 {
+                trialEligible = await info.isEligibleForIntroOffer
+            } else { trialEligible = false }
+            storeMessage = products.isEmpty ? "Apple has not returned the annual subscription. Please check your connection and retry. Saved number lists and help remain available." : "Apple confirms your eligibility and final terms before purchase."
         } catch { storeMessage = "Store unavailable: \(error.localizedDescription). Tap to retry." }
     }
     @MainActor private func checkEntitlements() async {
-        var active = false
+        var expiry: Date?
         for await result in Transaction.currentEntitlements {
             if case .verified(let transaction) = result, transaction.productID == productID,
-               transaction.revocationDate == nil, transaction.expirationDate.map({ $0 > Date() }) ?? true { active = true }
+               transaction.revocationDate == nil, let end = transaction.expirationDate, end > Date() {
+                expiry = max(expiry ?? .distantPast, end)
+            }
         }
-        isSubscribed = active
+        let changed = isSubscribed != (expiry != nil)
+        isSubscribed = expiry != nil
+        BlockStore.setSubscriptionExpiry(expiry)
+        if changed { refresh() }
     }
     @MainActor private func purchase(_ product: Product) async {
         guard !storeBusy else { return }; storeBusy = true
