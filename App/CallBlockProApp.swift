@@ -8,100 +8,165 @@ struct CallBlockProApp: App {
 }
 
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var input = ""
     @State private var numbers = BlockStore.numbers()
-    @State private var message = "Enable CallBlock Pro in Settings → Apps → Phone → Call Blocking & Identification."
+    @State private var message = "Enable CallBlock Pro in iPhone Phone settings, then refresh your blocking list."
     @State private var products: [Product] = []
     @State private var isSubscribed = false
     @State private var extensionEnabled = false
+    @State private var refreshing = false
+    @State private var storeBusy = false
+    @State private var storeMessage = ""
+    @State private var help: HelpTopic?
+    @FocusState private var inputFocused: Bool
     private let productID = "callblockpro.annual"
+    private let extensionID = "com.callblockpro.app.directory"
 
+    enum HelpTopic: String, Identifiable {
+        case prefixes = "Country prefixes", whatsapp = "WhatsApp calls"
+        var id: String { rawValue }
+        var detail: String {
+            switch self {
+            case .prefixes: return "Add a complete international number, including the country code. For example, +441234567890 or 00441234567890. Spaces, brackets and hyphens are accepted. A country prefix alone cannot block every number in that country: iOS Call Directory does not support prefix wildcards."
+            case .whatsapp: return "This extension blocks telephone calls through iOS. To silence unknown WhatsApp callers, open WhatsApp → Settings → Privacy → Calls → Silence Unknown Callers. To block a specific caller, open that contact in WhatsApp and choose Block."
+            }
+        }
+    }
     var body: some View {
         NavigationStack {
             Form {
                 Section("Protection") {
-                    Label("CallBlock Pro", systemImage: "shield.lefthalf.filled")
-                    Text(message).font(.footnote)
-                    Button("Refresh phone blocking") { refresh() }
-                    Label(extensionEnabled ? "iOS extension enabled" : "Enable extension in iOS Settings", systemImage: extensionEnabled ? "checkmark.shield" : "exclamationmark.shield")
+                    Button { openSettings() } label: {
+                        Label(extensionEnabled ? "Protection enabled · Open settings" : "Enable protection in iPhone settings", systemImage: extensionEnabled ? "checkmark.shield" : "exclamationmark.shield")
+                    }
+                    Text(message).font(.footnote).accessibilityIdentifier("protectionMessage")
+                    Button(refreshing ? "Refreshing…" : "Refresh phone blocking") { refresh() }
+                        .disabled(refreshing)
                 }
                 Section("Block a complete international number") {
                     TextField("Example: +441234567890", text: $input)
-                        .keyboardType(.phonePad)
-                    Button("Add number") {
-                        if BlockStore.add(input) {
-                            input = ""; numbers = BlockStore.numbers(); refresh()
-                        } else { message = "Enter a complete number with 7–15 digits and country code." }
-                    }
+                        .keyboardType(.phonePad).focused($inputFocused)
+                        .accessibilityIdentifier("numberInput")
+                    Button("Add number") { addNumber() }.accessibilityIdentifier("addNumber")
+                    if numbers.isEmpty { Text("No numbers added yet.").foregroundStyle(.secondary) }
                     ForEach(numbers, id: \.self) { number in
                         HStack {
-                            Text("+\(number)")
+                            Text("+\(number)").textSelection(.enabled)
                             Spacer()
                             Button(role: .destructive) {
-                                BlockStore.remove(number); numbers = BlockStore.numbers(); refresh()
+                                inputFocused = false
+                                BlockStore.remove(number)
+                                numbers = BlockStore.numbers()
+                                message = "Number removed from your saved list."
+                                refresh()
                             } label: { Image(systemName: "trash") }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel("Remove +\(number)")
                         }
                     }
                 }
-                Section("Country prefixes") {
-                    Text("A country prefix alone cannot be registered as a wildcard with Apple's Call Directory API. Add full numbers from that country. Bulk number imports require validation and platform limits.")
-                        .font(.footnote)
+                Section("Help") {
+                    Button("Country prefixes") { inputFocused = false; help = .prefixes }
+                    Button("WhatsApp calls") { inputFocused = false; help = .whatsapp }
                 }
-                Section("WhatsApp") {
-                    Text("WhatsApp calls cannot be blocked by this extension. In WhatsApp, open Settings → Privacy → Calls → Silence Unknown Callers, or block individual contacts.")
-                        .font(.footnote)
-                }
-                Section("Premium • $19.99/year") {
-                    Text("Eligible new subscribers may receive a 3-day free trial. Final terms and regional price are shown by Apple before purchase.")
-                    if isSubscribed { Label("Premium active", systemImage: "checkmark.seal.fill") }
+                Section("Subscription") {
+                    Text("Manual number management is available without a subscription. Apple's purchase sheet shows the available price and terms.").font(.footnote)
+                    if isSubscribed { Label("Subscription active", systemImage: "checkmark.seal.fill") }
                     else if let product = products.first {
-                        Button("Subscribe: \(product.displayPrice)/year") { Task { await purchase(product) } }
-                    } else { Text("Subscription not configured in App Store Connect yet.") }
-                    Button("Restore purchases") { Task { await restore() } }
+                        Button("Subscribe: \(product.displayPrice)/year") { Task { await purchase(product) } }.disabled(storeBusy)
+                    } else {
+                        Button(storeBusy ? "Checking availability…" : "Check subscription availability") { Task { await loadProducts() } }.disabled(storeBusy)
+                    }
+                    Button("Restore purchases") { Task { await restore() } }.disabled(storeBusy)
+                    if !storeMessage.isEmpty { Text(storeMessage).font(.footnote).accessibilityIdentifier("storeMessage") }
+                    Link("Manage Apple subscriptions", destination: URL(string: "https://apps.apple.com/account/subscriptions")!)
                 }
             }
             .navigationTitle("CallBlock Pro")
-            .task { await loadProducts(); await checkEntitlements(); checkExtension() }
+            .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Done") { inputFocused = false } } }
+            .sheet(item: $help) { topic in
+                NavigationStack {
+                    ScrollView { Text(topic.detail).padding().frame(maxWidth: .infinity, alignment: .leading) }
+                        .navigationTitle(topic.rawValue)
+                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { help = nil } } }
+                }.presentationDetents([.medium, .large])
+            }
+            .task { checkExtension(); await loadProducts(); await checkEntitlements() }
+            .onChange(of: scenePhase) { _, phase in if phase == .active { numbers = BlockStore.numbers(); checkExtension() } }
         }
     }
-
+    private func addNumber() {
+        inputFocused = false
+        guard let number = BlockStore.normalized(input) else {
+            message = "Enter a complete international number with 7–15 digits and a country code. Letters and wildcard prefixes are not accepted."
+            return
+        }
+        guard !numbers.contains(number) else { message = "This number is already in your list."; return }
+        guard BlockStore.add(input) else { message = "Could not save the number. Please try again."; return }
+        input = ""; numbers = BlockStore.numbers(); message = "Number saved."; refresh()
+    }
+    private func openSettings() {
+        inputFocused = false
+        CXCallDirectoryManager.sharedInstance.openSettings { error in
+            DispatchQueue.main.async {
+                message = error.map { "Could not open Phone settings: \($0.localizedDescription). Open Settings → Apps → Phone → Call Blocking & Identification." } ?? "Enable CallBlock Pro in Phone settings, then return here and refresh."
+            }
+        }
+    }
     private func checkExtension() {
-        CXCallDirectoryManager.sharedInstance.getEnabledStatusForExtension(withIdentifier: "com.callblockpro.app.directory") { status, _ in
-            DispatchQueue.main.async { extensionEnabled = (status == .enabled) }
+        CXCallDirectoryManager.sharedInstance.getEnabledStatusForExtension(withIdentifier: extensionID) { status, error in
+            DispatchQueue.main.async {
+                extensionEnabled = status == .enabled
+                if let error { message = "Could not check extension: \(error.localizedDescription)" }
+            }
         }
     }
     private func refresh() {
-        CXCallDirectoryManager.sharedInstance.reloadExtension(withIdentifier: "com.callblockpro.app.directory") { error in
+        guard !refreshing else { return }
+        inputFocused = false; refreshing = true
+        CXCallDirectoryManager.sharedInstance.reloadExtension(withIdentifier: extensionID) { error in
             DispatchQueue.main.async {
-                message = error.map { "Could not refresh: \($0.localizedDescription)" } ?? "Blocking list refreshed. Check iOS Phone settings for extension status."
+                refreshing = false
+                message = error.map { "Your list is saved. iOS could not refresh blocking: \($0.localizedDescription). Enable the extension in Phone settings and try again." } ?? "Blocking list refreshed: \(numbers.count) saved number(s)."
                 checkExtension()
             }
         }
     }
-    private func loadProducts() async {
-        do { products = try await Product.products(for: [productID]) }
-        catch { message = "Store unavailable: \(error.localizedDescription)" }
+    @MainActor private func loadProducts() async {
+        guard !storeBusy else { return }; storeBusy = true
+        defer { storeBusy = false }
+        do {
+            products = try await Product.products(for: [productID])
+            storeMessage = products.isEmpty ? "No subscription is currently available from Apple. You can continue managing numbers without purchasing." : "Price and subscription terms are confirmed by Apple before payment."
+        } catch { storeMessage = "Store unavailable: \(error.localizedDescription). Tap to retry." }
     }
-    private func checkEntitlements() async {
+    @MainActor private func checkEntitlements() async {
         var active = false
         for await result in Transaction.currentEntitlements {
-            if case .verified(let transaction) = result, transaction.productID == productID {
-                active = true
-            }
+            if case .verified(let transaction) = result, transaction.productID == productID,
+               transaction.revocationDate == nil, transaction.expirationDate.map({ $0 > Date() }) ?? true { active = true }
         }
         isSubscribed = active
     }
-    private func purchase(_ product: Product) async {
+    @MainActor private func purchase(_ product: Product) async {
+        guard !storeBusy else { return }; storeBusy = true
+        defer { storeBusy = false }
         do {
-            let result = try await product.purchase()
-            if case .success(let verification) = result, case .verified(let transaction) = verification {
-                await transaction.finish()
-                await checkEntitlements()
+            switch try await product.purchase() {
+            case .success(let verification):
+                guard case .verified(let transaction) = verification else { storeMessage = "Apple could not verify this purchase."; return }
+                await transaction.finish(); await checkEntitlements(); storeMessage = "Purchase verified by Apple."
+            case .pending: storeMessage = "Purchase awaiting approval."
+            case .userCancelled: storeMessage = "Purchase cancelled."
+            @unknown default: storeMessage = "Purchase not completed. Please try again."
             }
-        } catch { message = "Purchase not completed: \(error.localizedDescription)" }
+        } catch { storeMessage = "Purchase not completed: \(error.localizedDescription)" }
     }
-    private func restore() async {
-        do { try await AppStore.sync(); await checkEntitlements() }
-        catch { message = "Restore failed: \(error.localizedDescription)" }
+    @MainActor private func restore() async {
+        guard !storeBusy else { return }; storeBusy = true
+        defer { storeBusy = false }
+        do { try await AppStore.sync(); await checkEntitlements(); storeMessage = isSubscribed ? "Subscription restored." : "No active subscription was found for this Apple Account." }
+        catch { storeMessage = "Restore failed: \(error.localizedDescription)" }
     }
 }

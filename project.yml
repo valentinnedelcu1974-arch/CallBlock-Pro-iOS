@@ -46,3 +46,31 @@ targets:
           CODE_SIGN_STYLE: Manual
           CODE_SIGN_IDENTITY: Apple Distribution
           PROVISIONING_PROFILE_SPECIFIER: CallBlockPro_CallDirectory_AppStore
+
+  CallBlockProTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests]
+    dependencies:
+      - target: CallBlockPro
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.callblockpro.tests
+  CallBlockProUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: CallBlockPro
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.callblockpro.uitests
+schemes:
+  CallBlockPro:
+    build:
+      targets:
+        CallBlockPro: all
+    test:
+      targets: [CallBlockProTests, CallBlockProUITests]
