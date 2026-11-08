@@ -1,0 +1,37 @@
+name: iOS Build
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build application and embedded Call Directory extension
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -configuration Debug -derivedDataPath build CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: CallBlockPro-build-log
+          path: build.log
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CallBlockPro-simulator
+          path: build/Build/Products/Debug-iphonesimulator/CallBlockPro.app
+          retention-days: 7

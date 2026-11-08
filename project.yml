@@ -1,0 +1,36 @@
+name: CallBlockPro
+options:
+  bundleIdPrefix: com.callblockpro
+settings:
+  base:
+    IPHONEOS_DEPLOYMENT_TARGET: '17.0'
+    SWIFT_VERSION: '5.9'
+    TARGETED_DEVICE_FAMILY: '1'
+    MARKETING_VERSION: '1.1'
+    CURRENT_PROJECT_VERSION: '1'
+    INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+targets:
+  CallBlockPro:
+    type: application
+    platform: iOS
+    sources: [App, Shared]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.callblockpro.app
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_CFBundleDisplayName: CallBlock Pro
+        CODE_SIGN_ENTITLEMENTS: App/CallBlockPro.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - target: CallDirectory
+  CallDirectory:
+    type: app-extension
+    platform: iOS
+    sources: [CallDirectory, Shared]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.callblockpro.app.directory
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: CallDirectory/Info.plist
+        CODE_SIGN_ENTITLEMENTS: CallDirectory/CallDirectory.entitlements
