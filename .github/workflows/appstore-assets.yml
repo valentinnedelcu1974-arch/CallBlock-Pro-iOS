@@ -5,7 +5,7 @@ on:
     paths: [.github/workflows/appstore-assets.yml]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   screenshots:
     runs-on: macos-15
@@ -26,17 +26,27 @@ jobs:
       - name: Capture actual running application
         run: |
           set -euo pipefail
-          xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro -configuration Debug -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath build CODE_SIGNING_ALLOWED=NO build > build.log 2>&1 || { tail -100 build.log; exit 1; }
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           xcrun simctl status_bar "$SIMULATOR_ID" override --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
           xcrun simctl ui "$SIMULATOR_ID" appearance light
-          xcrun simctl install "$SIMULATOR_ID" build/Build/Products/Debug-iphonesimulator/CallBlockPro.app
-          xcrun simctl launch "$SIMULATOR_ID" com.callblockpro.app
-          sleep 10
-          mkdir -p appstore-screenshots
-          xcrun simctl io "$SIMULATOR_ID" screenshot appstore-screenshots/CallBlockPro-iPhone.png
-          sips -g pixelWidth -g pixelHeight appstore-screenshots/CallBlockPro-iPhone.png
+          xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro -configuration Debug -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath "$RUNNER_TEMP/Capture.xcresult" CODE_SIGNING_ALLOWED=NO -parallel-testing-enabled NO -only-testing:CallBlockProUITests/StoreCaptureTests/testCaptureHelp test > capture.log 2>&1 || { tail -100 capture.log; exit 1; }
+          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/Capture.xcresult" --output-path appstore-screenshots
+          find appstore-screenshots -type f
+      - name: Publish unchanged screenshot attachments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import os,json,base64,urllib.request
+          from pathlib import Path
+          for i,p in enumerate(sorted(Path('appstore-screenshots').rglob('*.png'))):
+              url='https://api.github.com/repos/valentinnedelcu1974-arch/CallBlock-Pro-iOS/contents/docs/screenshots/CallBlock-Help-'+str(i)+'.png'
+              payload={'message':'Publish actual CallBlock help-screen capture','content':base64.b64encode(p.read_bytes()).decode(),'branch':'main'}
+              req=urllib.request.Request(url,data=json.dumps(payload).encode(),headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json'},method='PUT')
+              with urllib.request.urlopen(req) as response: result=json.load(response)
+              print(result['content']['path'])
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: CallBlockPro-real-AppStore-screenshots
