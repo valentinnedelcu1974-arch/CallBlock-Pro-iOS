@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var isSubscribed = false
     @State private var extensionEnabled = false
     @State private var refreshing = false
+    @State private var refreshPending = false
     @State private var storeBusy = false
     @State private var storeMessage = ""
     @State private var help: HelpTopic?
@@ -52,7 +53,7 @@ struct ContentView: View {
                     if numbers.isEmpty { Text("No numbers added yet.").foregroundStyle(.secondary) }
                     ForEach(numbers, id: \.self) { number in
                         HStack {
-                            Text("+\(number)").textSelection(.enabled)
+                            Text("+\(String(number))").textSelection(.enabled)
                             Spacer()
                             Button(role: .destructive) {
                                 inputFocused = false
@@ -62,7 +63,7 @@ struct ContentView: View {
                                 refresh()
                             } label: { Image(systemName: "trash") }
                             .buttonStyle(.borderless)
-                            .accessibilityLabel("Remove +\(number)")
+                            .accessibilityLabel("Remove +\(String(number))")
                         }
                     }
                 }
@@ -93,7 +94,7 @@ struct ContentView: View {
                 }.presentationDetents([.medium, .large])
             }
             .task { checkExtension(); await loadProducts(); await checkEntitlements() }
-            .onChange(of: scenePhase) { _, phase in if phase == .active { numbers = BlockStore.numbers(); checkExtension() } }
+            .onChange(of: scenePhase) { _, phase in if phase == .active { numbers = BlockStore.numbers(); checkExtension(); Task { await checkEntitlements() } } }
         }
     }
     private func addNumber() {
@@ -123,13 +124,14 @@ struct ContentView: View {
         }
     }
     private func refresh() {
-        guard !refreshing else { return }
+        guard !refreshing else { refreshPending = true; return }
         inputFocused = false; refreshing = true
         CXCallDirectoryManager.sharedInstance.reloadExtension(withIdentifier: extensionID) { error in
             DispatchQueue.main.async {
                 refreshing = false
                 message = error.map { "Your list is saved. iOS could not refresh blocking: \($0.localizedDescription). Enable the extension in Phone settings and try again." } ?? "Blocking list refreshed: \(numbers.count) saved number(s)."
                 checkExtension()
+                if refreshPending { refreshPending = false; refresh() }
             }
         }
     }
