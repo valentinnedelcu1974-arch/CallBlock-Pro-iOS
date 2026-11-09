@@ -13,10 +13,13 @@ struct BlockStore {
         return Int64(digits)
     }
     static let subscriptionExpiryKey = "verifiedSubscriptionExpiry"
-    static func setSubscriptionExpiry(_ expiry: Date?) {
+    @discardableResult
+    static func setSubscriptionExpiry(_ expiry: Date?) -> Bool {
         let defaults = UserDefaults(suiteName: suite)
+        let previous = defaults?.double(forKey: subscriptionExpiryKey) ?? 0
         if let expiry { defaults?.set(expiry.timeIntervalSince1970, forKey: subscriptionExpiryKey) }
         else { defaults?.removeObject(forKey: subscriptionExpiryKey) }
+        return previous != (expiry?.timeIntervalSince1970 ?? 0)
     }
     static func blockingNumbers(now: Date = Date()) -> [Int64] {
         let expiry = UserDefaults(suiteName: suite)?.double(forKey: subscriptionExpiryKey) ?? 0

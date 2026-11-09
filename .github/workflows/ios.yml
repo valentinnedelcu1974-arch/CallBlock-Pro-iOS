@@ -24,6 +24,12 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -configuration Debug -derivedDataPath build CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log
+      - name: Validate number rules and subscription expiry
+        shell: bash
+        run: |
+          set -o pipefail
+          SIMULATOR_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); all=[x for a in d["devices"].values() for x in a]; print(next(x["udid"] for x in all if x["name"]=="iPhone 16 Pro"))')
+          xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro -configuration Debug -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -derivedDataPath build CODE_SIGNING_ALLOWED=NO -parallel-testing-enabled NO -only-testing:CallBlockProTests test 2>&1 | tee -a build.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:

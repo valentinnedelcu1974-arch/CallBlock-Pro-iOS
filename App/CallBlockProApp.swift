@@ -170,10 +170,10 @@ struct ContentView: View {
                 expiry = max(expiry ?? .distantPast, end)
             }
         }
-        let changed = isSubscribed != (expiry != nil)
+        let accessChanged = isSubscribed != (expiry != nil)
+        let expiryChanged = BlockStore.setSubscriptionExpiry(expiry)
         isSubscribed = expiry != nil
-        BlockStore.setSubscriptionExpiry(expiry)
-        if changed { refresh() }
+        if accessChanged || expiryChanged { refresh() }
     }
     @MainActor private func purchase(_ product: Product) async {
         guard !storeBusy else { return }; storeBusy = true
