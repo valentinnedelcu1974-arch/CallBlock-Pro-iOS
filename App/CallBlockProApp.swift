@@ -172,7 +172,7 @@ struct ContentView: View {
         }
         updateAccess(expiry: expiry)
     }
-    @MainActor private func applyVerifiedTransaction(_ transaction: Transaction) {
+    @MainActor private func applyVerifiedTransaction(_ transaction: StoreKit.Transaction) {
         let expiry = transaction.revocationDate == nil ? transaction.expirationDate : nil
         updateAccess(expiry: expiry.flatMap { $0 > Date() ? $0 : nil })
     }

@@ -1,4 +1,4 @@
-name: CallBlock build 3 verified transaction delivery
+name: CallBlock build 3 verified StoreKit transaction delivery
 on:
   push:
     branches: [main]
