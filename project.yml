@@ -18,6 +18,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.callblockpro.app
+        TARGETED_DEVICE_FAMILY: '1'
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: Config/AppInfo.plist
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
@@ -38,6 +39,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.callblockpro.app.directory
+        TARGETED_DEVICE_FAMILY: '1'
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: CallDirectory/Info.plist
         CODE_SIGN_ENTITLEMENTS: CallDirectory/CallDirectory.entitlements
@@ -76,5 +78,8 @@ schemes:
     build:
       targets:
         CallBlockPro: all
+    run:
+      config: Debug
+      storeKitConfiguration: UITests/CallBlockProducts.storekit
     test:
       targets: [CallBlockProTests, CallBlockProUITests]

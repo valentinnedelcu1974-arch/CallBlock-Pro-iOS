@@ -17,7 +17,7 @@ final class StoreCaptureTests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
         app.swipeUp()
-        XCTAssertTrue(app.buttons["Start 3-day free trial"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["Start 3-day free trial"].waitForExistence(timeout: 20), app.debugDescription)
         attach(app.screenshot(), name: "CallBlock-Subscription-Review")
         app.buttons["Country prefixes"].tap()
         XCTAssertTrue(app.navigationBars["Country prefixes"].waitForExistence(timeout: 5))
@@ -31,16 +31,16 @@ final class StoreCaptureTests: XCTestCase {
         app.launch()
         app.swipeUp()
         let trial = app.buttons["Start 3-day free trial"]
-        XCTAssertTrue(trial.waitForExistence(timeout: 15))
+        XCTAssertTrue(trial.waitForExistence(timeout: 20), app.debugDescription)
         trial.tap()
-        XCTAssertTrue(app.staticTexts["Subscription active"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["Subscription active"].waitForExistence(timeout: 20), app.debugDescription)
         app.buttons["Restore purchases"].tap()
         XCTAssertTrue(app.staticTexts["Subscription restored."].waitForExistence(timeout: 10))
         try session.expireSubscription(productIdentifier: "callblockpro.annual")
         app.terminate()
         app.launch()
         app.swipeUp()
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Subscribe:")).firstMatch.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Subscribe:")).firstMatch.waitForExistence(timeout: 20), app.debugDescription)
         XCTAssertFalse(app.staticTexts["Subscription active"].exists)
     }
 

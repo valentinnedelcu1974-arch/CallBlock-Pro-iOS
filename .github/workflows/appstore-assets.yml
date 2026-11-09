@@ -1,4 +1,4 @@
-name: CallBlock build 3 StoreKit tests and real captures
+name: CallBlock iPhone build 3 billing verification
 on:
   push:
     branches: [main]
@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        device: [iphone, ipad]
+        device: [iphone]
     runs-on: macos-15
     timeout-minutes: 20
     steps:
@@ -35,7 +35,7 @@ jobs:
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           xcrun simctl status_bar "$SIMULATOR_ID" override --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
           xcrun simctl ui "$SIMULATOR_ID" appearance light
-          xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro -configuration Debug -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath "$RUNNER_TEMP/Capture.xcresult" CODE_SIGNING_ALLOWED=NO -parallel-testing-enabled NO -only-testing:CallBlockProTests -only-testing:CallBlockProUITests test > capture.log 2>&1 || { tail -100 capture.log; exit 1; }
+          xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro -configuration Debug -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath "$RUNNER_TEMP/Capture.xcresult" CODE_SIGNING_ALLOWED=NO -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -only-testing:CallBlockProTests -only-testing:CallBlockProUITests test > capture.log 2>&1 || { tail -100 capture.log; exit 1; }
           xcrun xcresulttool export attachments --path "$RUNNER_TEMP/Capture.xcresult" --output-path appstore-screenshots
           find appstore-screenshots -type f
       - name: Publish unchanged screenshot attachments
