@@ -103,7 +103,7 @@ struct ContentView: View {
             .task {
                 for await result in Transaction.updates {
                     guard case .verified(let transaction) = result, transaction.productID == productID else { continue }
-                    await checkEntitlements()
+                    applyVerifiedTransaction(transaction)
                     await transaction.finish()
                     refresh()
                 }
@@ -165,12 +165,18 @@ struct ContentView: View {
     }
     @MainActor private func checkEntitlements() async {
         var expiry: Date?
-        for await result in Transaction.currentEntitlements {
-            if case .verified(let transaction) = result, transaction.productID == productID,
-               transaction.revocationDate == nil, let end = transaction.expirationDate, end > Date() {
-                expiry = max(expiry ?? .distantPast, end)
-            }
+        if let result = await Transaction.latest(for: productID),
+           case .verified(let transaction) = result, transaction.productID == productID,
+           transaction.revocationDate == nil, let end = transaction.expirationDate, end > Date() {
+            expiry = end
         }
+        updateAccess(expiry: expiry)
+    }
+    @MainActor private func applyVerifiedTransaction(_ transaction: Transaction) {
+        let expiry = transaction.revocationDate == nil ? transaction.expirationDate : nil
+        updateAccess(expiry: expiry.flatMap { $0 > Date() ? $0 : nil })
+    }
+    @MainActor private func updateAccess(expiry: Date?) {
         let accessChanged = isSubscribed != (expiry != nil)
         let expiryChanged = BlockStore.setSubscriptionExpiry(expiry)
         isSubscribed = expiry != nil
@@ -179,11 +185,14 @@ struct ContentView: View {
     @MainActor private func purchase(_ product: Product) async {
         guard !storeBusy else { return }; storeBusy = true
         defer { storeBusy = false }
+        storeMessage = "Waiting for Apple purchase confirmation…"
         do {
             switch try await product.purchase() {
             case .success(let verification):
                 guard case .verified(let transaction) = verification else { storeMessage = "Apple could not verify this purchase."; return }
-                await transaction.finish(); await checkEntitlements(); storeMessage = "Purchase verified by Apple."
+                applyVerifiedTransaction(transaction)
+                storeMessage = "Purchase verified by Apple."
+                await transaction.finish()
             case .pending: storeMessage = "Purchase awaiting approval."
             case .userCancelled: storeMessage = "Purchase cancelled."
             @unknown default: storeMessage = "Purchase not completed. Please try again."

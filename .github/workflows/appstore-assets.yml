@@ -1,4 +1,4 @@
-name: CallBlock build 3 independent StoreKit loading
+name: CallBlock build 3 verified transaction delivery
 on:
   push:
     branches: [main]
@@ -37,9 +37,13 @@ jobs:
           xcrun simctl status_bar "$SIMULATOR_ID" override --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
           xcrun simctl ui "$SIMULATOR_ID" appearance light
           xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro -configuration Debug -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath "$RUNNER_TEMP/Capture.xcresult" CODE_SIGNING_ALLOWED=NO -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -test-timeouts-enabled YES -default-test-execution-time-allowance 90 -maximum-test-execution-time-allowance 90 -only-testing:CallBlockProTests -only-testing:CallBlockProUITests test 2>&1 | tee capture.log
+      - name: Export real test attachments
+        if: always()
+        run: |
           xcrun xcresulttool export attachments --path "$RUNNER_TEMP/Capture.xcresult" --output-path appstore-screenshots
           find appstore-screenshots -type f
       - name: Publish unchanged screenshot attachments
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           CAPTURE_DEVICE: ${{ matrix.device }}
@@ -47,7 +51,9 @@ jobs:
           python3 - <<'PY'
           import os,json,base64,urllib.request,urllib.error
           from pathlib import Path
-          for i,p in enumerate(sorted(Path('appstore-screenshots').rglob('*.png'))):
+          captures = sorted(Path('appstore-screenshots').rglob('*.png'))
+          if not captures: raise SystemExit('No native screenshots were exported.')
+          for i,p in enumerate(captures):
               url='https://api.github.com/repos/valentinnedelcu1974-arch/CallBlock-Pro-iOS/contents/docs/screenshots/CallBlock-'+os.environ['CAPTURE_DEVICE']+'-Help-'+str(i)+'.png'
               payload={'message':'Publish actual CallBlock help-screen capture','content':base64.b64encode(p.read_bytes()).decode(),'branch':'main'}
               try:
