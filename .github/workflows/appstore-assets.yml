@@ -1,4 +1,4 @@
-name: CallBlock iPhone build 3 billing verification
+name: CallBlock build 3 StoreKit stable simulator
 on:
   push:
     branches: [main]
@@ -21,21 +21,22 @@ jobs:
       - name: Generate project and select simulator
         run: |
           set -euo pipefail
-          XCODE_APP=$(find /Applications -maxdepth 1 -name 'Xcode_26*.app' | sort -V | tail -1)
-          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          test -d /Applications/Xcode_16.4.app
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
           brew install xcodegen
           xcodegen generate
           xcrun simctl list devices available
-          SIMULATOR_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); all=[x for a in d["devices"].values() for x in a]; names=["iPhone 16 Pro","iPhone 17 Pro","iPhone 15 Pro","iPhone 16"]; matches=[x for n in names for x in all if x["name"]==n] if sys.argv[1]=="iphone" else [x for x in all if "iPad Pro" in x["name"] and "13-inch" in x["name"]]; print(matches[0]["udid"])' '${{ matrix.device }}')
+          SIMULATOR_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); all=[x for runtime,a in d["devices"].items() if "iOS-18-" in runtime for x in a]; names=["iPhone 16 Pro","iPhone 17 Pro","iPhone 15 Pro","iPhone 16"]; matches=[x for n in names for x in all if x["name"]==n] if sys.argv[1]=="iphone" else [x for x in all if "iPad Pro" in x["name"] and "13-inch" in x["name"]]; print(matches[0]["udid"])' '${{ matrix.device }}')
           echo "SIMULATOR_ID=$SIMULATOR_ID" >> "$GITHUB_ENV"
       - name: Capture actual running application
+        timeout-minutes: 12
         run: |
           set -euo pipefail
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           xcrun simctl status_bar "$SIMULATOR_ID" override --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
           xcrun simctl ui "$SIMULATOR_ID" appearance light
-          xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro -configuration Debug -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath "$RUNNER_TEMP/Capture.xcresult" CODE_SIGNING_ALLOWED=NO -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -only-testing:CallBlockProTests -only-testing:CallBlockProUITests test > capture.log 2>&1 || { tail -100 capture.log; exit 1; }
+          xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro -configuration Debug -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath "$RUNNER_TEMP/Capture.xcresult" CODE_SIGNING_ALLOWED=NO -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -test-timeouts-enabled YES -default-test-execution-time-allowance 90 -maximum-test-execution-time-allowance 90 -only-testing:CallBlockProTests -only-testing:CallBlockProUITests test 2>&1 | tee capture.log
           xcrun xcresulttool export attachments --path "$RUNNER_TEMP/Capture.xcresult" --output-path appstore-screenshots
           find appstore-screenshots -type f
       - name: Publish unchanged screenshot attachments
@@ -64,3 +65,11 @@ jobs:
           path: appstore-screenshots
           if-no-files-found: error
           retention-days: 7
+      - name: Preserve billing diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CallBlock-billing-diagnostics-${{ matrix.device }}
+          path: capture.log
+          if-no-files-found: ignore
+          retention-days: 3
