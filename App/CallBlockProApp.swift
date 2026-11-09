@@ -98,7 +98,8 @@ struct ContentView: View {
                         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { help = nil } } }
                 }.presentationDetents([.medium, .large])
             }
-            .task { checkExtension(); await checkEntitlements(); await loadProducts() }
+            .task { checkExtension(); await checkEntitlements() }
+            .task { await loadProducts() }
             .task {
                 for await result in Transaction.updates {
                     guard case .verified(let transaction) = result, transaction.productID == productID else { continue }

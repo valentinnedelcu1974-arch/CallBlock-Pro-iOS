@@ -1,4 +1,4 @@
-name: CallBlock build 3 StoreKit stable simulator
+name: CallBlock build 3 independent StoreKit loading
 on:
   push:
     branches: [main]
