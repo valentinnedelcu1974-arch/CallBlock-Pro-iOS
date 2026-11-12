@@ -1,0 +1,73 @@
+name: TestFlight Release
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  testflight:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Install signing credentials
+        env:
+          CERT_P12_BASE64: ${{ secrets.CALLBLOCK_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.CALLBLOCK_CERT_PASSWORD }}
+          PROFILE_APP_BASE64: ${{ secrets.CALLBLOCK_PROFILE_APP_BASE64 }}
+          PROFILE_EXTENSION_BASE64: ${{ secrets.CALLBLOCK_PROFILE_EXTENSION_BASE64 }}
+        run: |
+          set -euo pipefail
+          : "${CERT_P12_BASE64:?Missing certificate secret}"
+          : "${CERT_PASSWORD:?Missing certificate password}"
+          : "${PROFILE_APP_BASE64:?Missing app profile}"
+          : "${PROFILE_EXTENSION_BASE64:?Missing extension profile}"
+          KEYCHAIN="$RUNNER_TEMP/callblock.keychain-db"
+          security create-keychain -p "$RUNNER_TEMP" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$RUNNER_TEMP" "$KEYCHAIN"
+          echo "$CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/distribution.p12"
+          security import "$RUNNER_TEMP/distribution.p12" -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$RUNNER_TEMP" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          echo "$PROFILE_APP_BASE64" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/CallBlockPro_AppStore.mobileprovision"
+          echo "$PROFILE_EXTENSION_BASE64" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/CallBlockPro_CallDirectory_AppStore.mobileprovision"
+      - name: Archive iOS app
+        run: |
+          set -euo pipefail
+          xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/CallBlockPro.xcarchive" archive
+      - name: Export IPA
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+          <key>method</key><string>app-store-connect</string>
+          <key>signingStyle</key><string>manual</string>
+          <key>teamID</key><string>F3639777XM</string>
+          <key>provisioningProfiles</key><dict>
+          <key>com.callblockpro.app</key><string>CallBlockPro_AppStore</string>
+          <key>com.callblockpro.app.directory</key><string>CallBlockPro_CallDirectory_AppStore</string>
+          </dict>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/CallBlockPro.xcarchive" -exportPath "$RUNNER_TEMP/export" -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
+      - name: Upload to App Store Connect
+        env:
+          ASC_API_KEY_ID: ${{ secrets.CALLBLOCK_ASC_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.CALLBLOCK_ASC_ISSUER_ID }}
+          ASC_API_PRIVATE_KEY: ${{ secrets.CALLBLOCK_ASC_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          : "${ASC_API_KEY_ID:?Missing App Store Connect key ID}"
+          : "${ASC_API_ISSUER_ID:?Missing App Store Connect issuer ID}"
+          : "${ASC_API_PRIVATE_KEY:?Missing App Store Connect private key}"
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          printf '%s' "$ASC_API_PRIVATE_KEY" > "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8"
+          IPA=$(find "$RUNNER_TEMP/export" -name '*.ipa' -print -quit)
+          test -n "$IPA"
+          xcrun altool --upload-app --type ios --file "$IPA" --apiKey "$ASC_API_KEY_ID" --apiIssuer "$ASC_API_ISSUER_ID"
