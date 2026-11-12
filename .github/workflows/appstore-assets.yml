@@ -1,4 +1,4 @@
-name: CallBlock build 3 verified StoreKit transaction delivery
+name: CallBlock real review screenshots
 on:
   push:
     branches: [main]
@@ -8,74 +8,44 @@ permissions:
   contents: write
 jobs:
   screenshots:
-    strategy:
-      fail-fast: false
-      matrix:
-        device: [iphone]
-    runs-on: macos-15
-    timeout-minutes: 20
+    runs-on: macos-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Generate project and select simulator
+      - name: Generate project and select iPhone simulator
         run: |
           set -euo pipefail
-          test -d /Applications/Xcode_16.4.app
-          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
           brew install xcodegen
           xcodegen generate
-          xcrun simctl list devices available
-          SIMULATOR_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); all=[x for runtime,a in d["devices"].items() if "iOS-18-" in runtime for x in a]; names=["iPhone 16 Pro","iPhone 17 Pro","iPhone 15 Pro","iPhone 16"]; matches=[x for n in names for x in all if x["name"]==n] if sys.argv[1]=="iphone" else [x for x in all if "iPad Pro" in x["name"] and "13-inch" in x["name"]]; print(matches[0]["udid"])' '${{ matrix.device }}')
+          SIMULATOR_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); a=[x for v in d["devices"].values() for x in v if x.get("isAvailable") and x["name"].startswith("iPhone")]; preferred=[x for n in ["iPhone 17 Pro","iPhone 16 Pro","iPhone 16"] for x in a if x["name"]==n]; print((preferred or a)[0]["udid"])')
           echo "SIMULATOR_ID=$SIMULATOR_ID" >> "$GITHUB_ENV"
-      - name: Capture actual running application
-        timeout-minutes: 12
-        run: |
-          set -euo pipefail
           xcrun simctl boot "$SIMULATOR_ID" || true
           xcrun simctl bootstatus "$SIMULATOR_ID" -b
           xcrun simctl status_bar "$SIMULATOR_ID" override --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
           xcrun simctl ui "$SIMULATOR_ID" appearance light
-          xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro -configuration Debug -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath "$RUNNER_TEMP/Capture.xcresult" CODE_SIGNING_ALLOWED=NO -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -test-timeouts-enabled YES -default-test-execution-time-allowance 90 -maximum-test-execution-time-allowance 90 -only-testing:CallBlockProTests -only-testing:CallBlockProUITests test 2>&1 | tee capture.log
-      - name: Export real test attachments
+      - name: Capture native subscription screen using StoreKit Test
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro -configuration Debug \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+            -resultBundlePath "$RUNNER_TEMP/Capture.xcresult" \
+            CODE_SIGNING_ALLOWED=NO -parallel-testing-enabled NO \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 90 \
+            -maximum-test-execution-time-allowance 90 \
+            -only-testing:CallBlockProUITests/StoreCaptureTests/testCaptureHelp test
+      - name: Export actual screenshot attachments
         if: always()
         run: |
           xcrun xcresulttool export attachments --path "$RUNNER_TEMP/Capture.xcresult" --output-path appstore-screenshots
           find appstore-screenshots -type f
-      - name: Publish unchanged screenshot attachments
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CAPTURE_DEVICE: ${{ matrix.device }}
-        run: |
-          python3 - <<'PY'
-          import os,json,base64,urllib.request,urllib.error
-          from pathlib import Path
-          captures = sorted(Path('appstore-screenshots').rglob('*.png'))
-          if not captures: raise SystemExit('No native screenshots were exported.')
-          for i,p in enumerate(captures):
-              url='https://api.github.com/repos/valentinnedelcu1974-arch/CallBlock-Pro-iOS/contents/docs/screenshots/CallBlock-'+os.environ['CAPTURE_DEVICE']+'-Help-'+str(i)+'.png'
-              payload={'message':'Publish actual CallBlock help-screen capture','content':base64.b64encode(p.read_bytes()).decode(),'branch':'main'}
-              try:
-                  check=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
-                  with urllib.request.urlopen(check) as response: payload['sha']=json.load(response)['sha']
-              except urllib.error.HTTPError as error:
-                  if error.code != 404: raise
-              req=urllib.request.Request(url,data=json.dumps(payload).encode(),headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json'},method='PUT')
-              with urllib.request.urlopen(req) as response: result=json.load(response)
-              print(result['content']['path'])
-          PY
-      - uses: actions/upload-artifact@v4
-        with:
-          name: CallBlockPro-real-AppStore-screenshots-${{ matrix.device }}
-          path: appstore-screenshots
-          if-no-files-found: error
-          retention-days: 7
-      - name: Preserve billing diagnostics
+      - name: Preserve real review screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: CallBlock-billing-diagnostics-${{ matrix.device }}
-          path: capture.log
-          if-no-files-found: ignore
-          retention-days: 3
+          name: CallBlockPro-native-review-screenshots
+          path: appstore-screenshots
+          if-no-files-found: error
+          retention-days: 7
