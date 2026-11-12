@@ -34,7 +34,7 @@ jobs:
         run: brew install xcodegen
       - name: Generate Xcode project
         run: xcodegen generate
-      - name: Archive Build 3 with automatic signing
+      - name: Archive Build 4 with automatic signing
         shell: bash
         run: |
           set -euo pipefail
@@ -47,10 +47,10 @@ jobs:
             -authenticationKeyIssuerID "$ASC_API_ISSUER_ID" \
             CODE_SIGN_STYLE=Automatic CODE_SIGNING_ALLOWED=NO \
             PROVISIONING_PROFILE_SPECIFIER="" DEVELOPMENT_TEAM=F3639777XM \
-            CURRENT_PROJECT_VERSION=3 archive
+            CURRENT_PROJECT_VERSION=4 archive
           INFO="$RUNNER_TEMP/CallBlockPro.xcarchive/Products/Applications/CallBlockPro.app/Info.plist"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$INFO")" = "com.callblockpro.app"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO")" = "3"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO")" = "4"
           EXT_INFO="$RUNNER_TEMP/CallBlockPro.xcarchive/Products/Applications/CallBlockPro.app/PlugIns/CallDirectory.appex/Info.plist"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXT_INFO")" = "com.callblockpro.app.directory"
       - name: Cloud sign and upload to TestFlight only
@@ -77,7 +77,7 @@ jobs:
             -authenticationKeyPath "$RUNNER_TEMP/CallBlockAuthKey.p8" \
             -authenticationKeyID "$ASC_API_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_API_ISSUER_ID"
-          echo "Build 3 uploaded. App Review submission is intentionally not automated." >> "$GITHUB_STEP_SUMMARY"
+          echo "Build 4 uploaded. App Review submission is intentionally not automated." >> "$GITHUB_STEP_SUMMARY"
       - name: Clean up signing credentials
         if: always()
         shell: bash

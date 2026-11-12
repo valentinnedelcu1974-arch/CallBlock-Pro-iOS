@@ -104,6 +104,7 @@ struct ContentView: View {
                         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { help = nil } } }
                 }.presentationDetents([.medium, .large])
             }
+            .onAppear { numbers = BlockStore.numbers() }
             .task { checkExtension(); await checkEntitlements() }
             .task { await loadProducts() }
             .task {
