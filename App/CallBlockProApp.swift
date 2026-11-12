@@ -11,7 +11,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var input = ""
     @State private var numbers = BlockStore.numbers()
-    @State private var message = "Enable CallBlock Pro in iPhone Phone settings, then refresh your blocking list."
+    @State private var message = "Enable CallBlock Mercury Pro in iPhone Phone settings, then refresh your blocking list."
     @State private var products: [Product] = []
     @State private var isSubscribed = false
     @State private var trialEligible = false
@@ -38,6 +38,11 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    NavigationLink { MercuryWorkspace() } label: {
+                        Label("Mercury Workspace · Inspect, import, export", systemImage: "waveform.path.ecg")
+                    }
+                }
                 Section("Protection") {
                     Button { openSettings() } label: {
                         Label(extensionEnabled ? "Protection enabled · Open settings" : "Enable protection in iPhone settings", systemImage: extensionEnabled ? "checkmark.shield" : "exclamationmark.shield")
@@ -89,7 +94,8 @@ struct ContentView: View {
                     Link("Support", destination: URL(string: "https://github.com/valentinnedelcu1974-arch/CallBlock-Pro-iOS/blob/main/docs/SUPPORT.md")!)
                 }
             }
-            .navigationTitle("CallBlock Pro")
+            .navigationTitle("Mercury Protection")
+            .tint(.mint)
             .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Done") { inputFocused = false } } }
             .sheet(item: $help) { topic in
                 NavigationStack {
@@ -125,7 +131,7 @@ struct ContentView: View {
         inputFocused = false
         CXCallDirectoryManager.sharedInstance.openSettings { error in
             DispatchQueue.main.async {
-                message = error.map { "Could not open Phone settings: \($0.localizedDescription). Open Settings → Apps → Phone → Call Blocking & Identification." } ?? "Enable CallBlock Pro in Phone settings, then return here and refresh."
+                message = error.map { "Could not open Phone settings: \($0.localizedDescription). Open Settings → Apps → Phone → Call Blocking & Identification." } ?? "Enable CallBlock Mercury Pro in Phone settings, then return here and refresh."
             }
         }
     }
