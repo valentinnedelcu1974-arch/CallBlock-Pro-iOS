@@ -1,4 +1,4 @@
-# CallBlock Pro
+# CallBlock Mercury Pro
 A simple, private list of telephone numbers you choose to block on your iPhone.
 
 - Add complete international numbers with their country code.
