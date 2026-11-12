@@ -3,71 +3,84 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: callblock-testflight
+  cancel-in-progress: false
 jobs:
   testflight:
     runs-on: macos-15
     timeout-minutes: 45
+    env:
+      ASC_API_KEY_ID: ${{ secrets.CALLBLOCK_ASC_KEY_ID }}
+      ASC_API_ISSUER_ID: ${{ secrets.CALLBLOCK_ASC_ISSUER_ID }}
+      ASC_API_PRIVATE_KEY: ${{ secrets.CALLBLOCK_ASC_PRIVATE_KEY }}
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare App Store Connect authentication
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${ASC_API_KEY_ID:?Missing CALLBLOCK_ASC_KEY_ID}"
+          : "${ASC_API_ISSUER_ID:?Missing CALLBLOCK_ASC_ISSUER_ID}"
+          : "${ASC_API_PRIVATE_KEY:?Missing CALLBLOCK_ASC_PRIVATE_KEY}"
+          printf '%s' "$ASC_API_PRIVATE_KEY" > "$RUNNER_TEMP/CallBlockAuthKey.p8"
+          openssl pkey -in "$RUNNER_TEMP/CallBlockAuthKey.p8" -noout
+          security create-keychain -p "$RUNNER_TEMP" "$RUNNER_TEMP/callblock.keychain-db"
+          security set-keychain-settings -lut 21600 "$RUNNER_TEMP/callblock.keychain-db"
+          security unlock-keychain -p "$RUNNER_TEMP" "$RUNNER_TEMP/callblock.keychain-db"
+          security list-keychains -d user -s "$RUNNER_TEMP/callblock.keychain-db" login.keychain-db
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
         run: xcodegen generate
-      - name: Install signing credentials
-        env:
-          CERT_P12_BASE64: ${{ secrets.CALLBLOCK_CERT_P12_BASE64 }}
-          CERT_PASSWORD: ${{ secrets.CALLBLOCK_CERT_PASSWORD }}
-          PROFILE_APP_BASE64: ${{ secrets.CALLBLOCK_PROFILE_APP_BASE64 }}
-          PROFILE_EXTENSION_BASE64: ${{ secrets.CALLBLOCK_PROFILE_EXTENSION_BASE64 }}
+      - name: Archive Build 3 with automatic signing
+        shell: bash
         run: |
           set -euo pipefail
-          : "${CERT_P12_BASE64:?Missing certificate secret}"
-          : "${CERT_PASSWORD:?Missing certificate password}"
-          : "${PROFILE_APP_BASE64:?Missing app profile}"
-          : "${PROFILE_EXTENSION_BASE64:?Missing extension profile}"
-          KEYCHAIN="$RUNNER_TEMP/callblock.keychain-db"
-          security create-keychain -p "$RUNNER_TEMP" "$KEYCHAIN"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN"
-          security unlock-keychain -p "$RUNNER_TEMP" "$KEYCHAIN"
-          echo "$CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/distribution.p12"
-          security import "$RUNNER_TEMP/distribution.p12" -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$RUNNER_TEMP" "$KEYCHAIN"
-          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
-          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          echo "$PROFILE_APP_BASE64" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/CallBlockPro_AppStore.mobileprovision"
-          echo "$PROFILE_EXTENSION_BASE64" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/CallBlockPro_CallDirectory_AppStore.mobileprovision"
-      - name: Archive iOS app
+          xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/CallBlockPro.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/CallBlockAuthKey.p8" \
+            -authenticationKeyID "$ASC_API_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_API_ISSUER_ID" \
+            CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Development" \
+            PROVISIONING_PROFILE_SPECIFIER="" DEVELOPMENT_TEAM=F3639777XM \
+            CURRENT_PROJECT_VERSION=3 archive
+          INFO="$RUNNER_TEMP/CallBlockPro.xcarchive/Products/Applications/CallBlockPro.app/Info.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$INFO")" = "com.callblockpro.app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO")" = "3"
+          EXT_INFO="$RUNNER_TEMP/CallBlockPro.xcarchive/Products/Applications/CallBlockPro.app/PlugIns/CallDirectory.appex/Info.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$EXT_INFO")" = "com.callblockpro.app.directory"
+      - name: Cloud sign and upload to TestFlight only
+        shell: bash
         run: |
           set -euo pipefail
-          xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/CallBlockPro.xcarchive" archive
-      - name: Export IPA
-        run: |
-          cat > "$RUNNER_TEMP/ExportOptions.plist" <<'PLIST'
+          cat > "$RUNNER_TEMP/CallBlockExportOptions.plist" <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
           <key>method</key><string>app-store-connect</string>
-          <key>signingStyle</key><string>manual</string>
+          <key>destination</key><string>upload</string>
+          <key>signingStyle</key><string>automatic</string>
           <key>teamID</key><string>F3639777XM</string>
-          <key>provisioningProfiles</key><dict>
-          <key>com.callblockpro.app</key><string>CallBlockPro_AppStore</string>
-          <key>com.callblockpro.app.directory</key><string>CallBlockPro_CallDirectory_AppStore</string>
-          </dict>
+          <key>manageAppVersionAndBuildNumber</key><false/>
+          <key>uploadSymbols</key><true/>
           </dict></plist>
           PLIST
-          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/CallBlockPro.xcarchive" -exportPath "$RUNNER_TEMP/export" -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
-      - name: Upload to App Store Connect
-        env:
-          ASC_API_KEY_ID: ${{ secrets.CALLBLOCK_ASC_KEY_ID }}
-          ASC_API_ISSUER_ID: ${{ secrets.CALLBLOCK_ASC_ISSUER_ID }}
-          ASC_API_PRIVATE_KEY: ${{ secrets.CALLBLOCK_ASC_PRIVATE_KEY }}
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/CallBlockPro.xcarchive" \
+            -exportPath "$RUNNER_TEMP/callblock-export" \
+            -exportOptionsPlist "$RUNNER_TEMP/CallBlockExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/CallBlockAuthKey.p8" \
+            -authenticationKeyID "$ASC_API_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_API_ISSUER_ID"
+          echo "Build 3 uploaded. App Review submission is intentionally not automated." >> "$GITHUB_STEP_SUMMARY"
+      - name: Clean up signing credentials
+        if: always()
+        shell: bash
         run: |
-          set -euo pipefail
-          : "${ASC_API_KEY_ID:?Missing App Store Connect key ID}"
-          : "${ASC_API_ISSUER_ID:?Missing App Store Connect issuer ID}"
-          : "${ASC_API_PRIVATE_KEY:?Missing App Store Connect private key}"
-          mkdir -p "$HOME/.appstoreconnect/private_keys"
-          printf '%s' "$ASC_API_PRIVATE_KEY" > "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8"
-          IPA=$(find "$RUNNER_TEMP/export" -name '*.ipa' -print -quit)
-          test -n "$IPA"
-          xcrun altool --upload-app --type ios --file "$IPA" --apiKey "$ASC_API_KEY_ID" --apiIssuer "$ASC_API_ISSUER_ID"
+          rm -f "$RUNNER_TEMP/CallBlockAuthKey.p8"
+          security delete-keychain "$RUNNER_TEMP/callblock.keychain-db" || true
