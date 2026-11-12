@@ -1,0 +1,36 @@
+name: Mercury App Store native capture
+on:
+  push:
+    branches: [mercury-review-assets]
+    paths: [.github/workflows/mercury-store-capture.yml]
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: macos-26-intel
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate project and prepare large iPhone simulator
+        run: |
+          set -euo pipefail
+          export HOMEBREW_NO_AUTO_UPDATE=1
+          command -v xcodegen || brew install xcodegen
+          xcodegen generate
+          SIMULATOR_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); a=[x for v in d["devices"].values() for x in v if x.get("isAvailable")]; p=[x for n in ["iPhone 17 Pro Max","iPhone 16 Pro Max"] for x in a if x["name"]==n]; assert p,"Large iPhone simulator unavailable"; print(p[0]["udid"])')
+          echo "SIMULATOR_ID=$SIMULATOR_ID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          xcrun simctl status_bar "$SIMULATOR_ID" override --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
+      - name: Capture actual workspace screens
+        run: |
+          xcodebuild -project CallBlockPro.xcodeproj -scheme CallBlockPro -configuration Debug -destination "platform=iOS Simulator,id=$SIMULATOR_ID" CODE_SIGNING_ALLOWED=NO -parallel-testing-enabled NO -resultBundlePath Capture.xcresult -only-testing:CallBlockProUITests/MercuryStoreScreenshots/testCaptureWorkspace test
+      - name: Export screenshot attachments
+        if: always()
+        run: xcrun xcresulttool export attachments --path Capture.xcresult --output-path screenshots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Mercury-AppStore-large-iPhone
+          path: screenshots
+          retention-days: 7
