@@ -1,0 +1,26 @@
+name: Export Mercury verified screenshots
+on:
+  push:
+    branches: [mercury-review-assets]
+    paths: [.github/workflows/export-mercury-screenshots.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  export:
+    runs-on: macos-26-intel
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Mercury-validation-results
+          path: MercuryValidation.xcresult
+          github-token: ${{ github.token }}
+          run-id: 43288695943
+      - name: Export original native screenshot attachments
+        run: xcrun xcresulttool export attachments --path MercuryValidation.xcresult --output-path screenshots
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Mercury-verified-screenshots
+          path: screenshots
+          retention-days: 7
