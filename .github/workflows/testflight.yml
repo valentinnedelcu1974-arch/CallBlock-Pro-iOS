@@ -39,6 +39,11 @@ jobs:
           security list-keychains -d user -s "$RUNNER_TEMP/callblock.keychain-db" login.keychain-db
       - name: Install XcodeGen
         run: HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+      - name: Verify complete opaque 1024px App Store icon
+        run: |
+          set -euo pipefail
+          test "$(git hash-object App/Assets.xcassets/AppIcon.appiconset/AppIcon.png)" = "ad1c8e88bf6ac56bcf083c11b10e91f5a382cf75"
+          sips -g pixelWidth -g pixelHeight -g hasAlpha App/Assets.xcassets/AppIcon.appiconset/AppIcon.png
       - name: Generate Xcode project
         run: xcodegen generate
       - name: Archive Build 4 with automatic signing
