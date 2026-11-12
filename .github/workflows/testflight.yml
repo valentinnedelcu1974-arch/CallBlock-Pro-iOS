@@ -1,6 +1,13 @@
 name: TestFlight Release
 on:
   workflow_dispatch:
+    inputs:
+      runner:
+        description: Standard macOS runner pool
+        required: true
+        default: macos-26-intel
+        type: choice
+        options: [macos-26-intel, macos-15-intel, macos-26, macos-15]
 permissions:
   contents: read
 concurrency:
@@ -8,7 +15,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   testflight:
-    runs-on: macos-15-intel
+    runs-on: ${{ inputs.runner }}
     timeout-minutes: 45
     env:
       ASC_API_KEY_ID: ${{ secrets.CALLBLOCK_ASC_KEY_ID }}
