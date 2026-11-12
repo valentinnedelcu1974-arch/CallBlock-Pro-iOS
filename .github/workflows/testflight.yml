@@ -45,7 +45,7 @@ jobs:
             -authenticationKeyPath "$RUNNER_TEMP/CallBlockAuthKey.p8" \
             -authenticationKeyID "$ASC_API_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_API_ISSUER_ID" \
-            CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Development" \
+            CODE_SIGN_STYLE=Automatic CODE_SIGNING_ALLOWED=NO \
             PROVISIONING_PROFILE_SPECIFIER="" DEVELOPMENT_TEAM=F3639777XM \
             CURRENT_PROJECT_VERSION=3 archive
           INFO="$RUNNER_TEMP/CallBlockPro.xcarchive/Products/Applications/CallBlockPro.app/Info.plist"
