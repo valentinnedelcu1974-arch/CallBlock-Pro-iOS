@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   testflight:
-    runs-on: macos-15
+    runs-on: macos-latest
     timeout-minutes: 45
     env:
       ASC_API_KEY_ID: ${{ secrets.CALLBLOCK_ASC_KEY_ID }}
