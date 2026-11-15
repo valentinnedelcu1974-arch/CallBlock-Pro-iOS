@@ -1,9 +1,11 @@
-# XNoCall 1.1 (5) — release candidate
+# XNoCall 1.1 (8) — Ready for Review
 
-Updates the existing app com.callblockpro.app, Apple ID 6832368460. Preserves the existing subscription product ID and extension bundle ID.
+Observed in App Store Connect on 15 November 2026: iOS version 1.1 is Ready for Review with Build 8 selected. The same draft contains three ready items: iOS App 1.1, XNoCall Annual and XNoCall Premium. The final Submit for Review action has not been pressed; the requested target was Ready for Review.
 
-New original smartphone/X icon, dark spectrum dashboard with motion respecting Reduce Motion, private rule notebook with searchable labels and decision notes, existing validated import/export Rule Lab.
+Existing app: Apple ID 6832368460; bundle com.callblockpro.app; extension com.callblockpro.app.directory. Product ID callblockpro.annual is preserved. The old submission was cancelled; the subscription and group were Developer Rejected before being added to the new draft.
 
-Static plist, JSON and YAML checks passed. iOS compilation, simulator tests, physical incoming calls, signing, TestFlight and review submission are not yet verified for this candidate. Codemagic requires repository access before the xnocall-verify workflow can run. Signing and publishing workflow must be configured with the actual existing integration and app/extension profiles after access is available.
+Changes: original smartphone/X icon, spectrum dashboard with reduced-motion support, private searchable rule notebook (labels/reasons/notes), local Rule Lab, phone numbers displayed without grouping separators, clear simulator limitations, app/extension required-reason privacy manifests. App and extension names are XNoCall and XNoCall Directory. App information, subtitle, description, review notes, attachment, TestFlight information, subscription names and artwork were updated. Three real current screenshots replace the old store screenshots.
 
-Apple rejected the earlier app under 4.3(a). These changes do not guarantee acceptance. Review notes must describe only verified functionality and test results. Capture fresh screenshots from this build before resubmitting. Home-screen app icons are static; the in-app spectrum border pulses.
+Validation: four model/persistence tests and five UI tests passed on Xcode 26.2 for commit 388710efce8c8d22f2e1443ac2f1acde1628f828. UI tests cover number add/duplicate/delete/help, invalid imports, notebook save/search and local StoreKit purchase/restore/expiry. Final packaging verified identical Swift sources before signing. Build 8 IPA checks confirmed both display names, version 1.1/build 8, provisioning profiles, code signatures and privacy manifests; no .storekit test configuration is present in the release. Apple upload reported UPLOAD SUCCEEDED with no errors. Build 8 was processed in TestFlight and shown as Ready to Submit.
+
+Separate limitation: Codemagic automatic external TestFlight review post-processing failed after the successful upload. This did not block selecting Build 8 for App Store Ready for Review. External beta review/distribution is not confirmed. Actual incoming-call blocking requires a physical iPhone and was not verified by the simulator suite. Apple decides App Review acceptance; 4.3(a) approval is not guaranteed.
