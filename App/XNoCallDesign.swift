@@ -66,6 +66,7 @@ struct RuleNotebook: View {
                             Text(entry.reason).font(.caption).foregroundStyle(.secondary)
                         }.padding(.vertical, 5)
                     }
+                    .accessibilityIdentifier("ruleRow-\(number)")
                 }
             }
             Section("Decision record") {

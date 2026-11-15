@@ -7,14 +7,20 @@ settings:
     SWIFT_VERSION: '5.9'
     TARGETED_DEVICE_FAMILY: '1'
     MARKETING_VERSION: '1.1'
-    CURRENT_PROJECT_VERSION: '5'
+    CURRENT_PROJECT_VERSION: '6'
     DEVELOPMENT_TEAM: F3639777XM
     INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
 targets:
   CallBlockPro:
     type: application
     platform: iOS
-    sources: [App, Shared]
+    sources:
+      - path: App
+        excludes: [PrivacyInfo.xcprivacy]
+      - path: Shared
+        excludes: [PrivacyInfo.xcprivacy]
+      - path: App/PrivacyInfo.xcprivacy
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.callblockpro.app
@@ -35,7 +41,13 @@ targets:
   CallDirectory:
     type: app-extension
     platform: iOS
-    sources: [CallDirectory, Shared]
+    sources:
+      - path: CallDirectory
+        excludes: [PrivacyInfo.xcprivacy]
+      - path: Shared
+        excludes: [PrivacyInfo.xcprivacy]
+      - path: CallDirectory/PrivacyInfo.xcprivacy
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.callblockpro.app.directory

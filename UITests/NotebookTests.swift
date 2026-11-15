@@ -12,7 +12,9 @@ final class NotebookTests: XCTestCase {
         let notebook = app.buttons["Rule notebook · Labels and decisions"]
         for _ in 0..<6 { if notebook.exists && notebook.isHittable { break }; app.swipeDown() }
         notebook.tap()
-        app.buttons.containing(.staticText, identifier: "+447700900789").firstMatch.tap()
+        let row = app.buttons["ruleRow-447700900789"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5), app.debugDescription)
+        row.tap()
         let label = app.textFields["ruleLabel"]
         XCTAssertTrue(label.waitForExistence(timeout: 5))
         label.tap(); label.typeText("Repeated sales")
