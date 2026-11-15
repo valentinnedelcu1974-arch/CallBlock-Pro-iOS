@@ -23,7 +23,8 @@ final class NotebookTests: XCTestCase {
         app.buttons["Done"].tap()
         let search = app.searchFields.firstMatch
         search.tap(); search.typeText("Repeated sales")
-        XCTAssertTrue(app.staticTexts["Repeated sales"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["ruleRow-447700900789"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["ruleRow-447700900789"].label.contains("Repeated sales"))
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "XNoCall-Private-Notebook"; shot.lifetime = .keepAlways; add(shot)
     }
