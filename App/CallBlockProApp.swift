@@ -11,7 +11,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var input = ""
     @State private var numbers = BlockStore.numbers()
-    @State private var message = "Enable CallBlock Mercury Pro in iPhone Phone settings, then refresh your blocking list."
+    @State private var message = "Enable XNoCall in iPhone Phone settings, then refresh your blocking list."
     @State private var products: [Product] = []
     @State private var isSubscribed = false
     @State private var trialEligible = false
@@ -39,8 +39,17 @@ struct ContentView: View {
         NavigationStack {
             Form {
                 Section {
+                    XNoCallHero(savedCount: numbers.count, extensionEnabled: extensionEnabled)
+                        .listRowBackground(Color.clear)
+                }
+                Section {
+                    NavigationLink { RuleNotebook() } label: {
+                        Label("Rule notebook · Labels and decisions", systemImage: "note.text")
+                    }
+                }
+                Section {
                     NavigationLink { MercuryWorkspace() } label: {
-                        Label("Mercury Workspace · Inspect, import, export", systemImage: "waveform.path.ecg")
+                        Label("Rule Lab · Inspect, import, export", systemImage: "waveform.path.ecg")
                     }
                 }
                 Section("Protection") {
@@ -64,6 +73,7 @@ struct ContentView: View {
                             Button(role: .destructive) {
                                 inputFocused = false
                                 BlockStore.remove(number)
+                                RuleNotes.remove(number)
                                 numbers = BlockStore.numbers()
                                 message = "Number removed from your saved list."
                                 refresh()
@@ -94,8 +104,11 @@ struct ContentView: View {
                     Link("Support", destination: URL(string: "https://github.com/valentinnedelcu1974-arch/CallBlock-Pro-iOS/blob/main/docs/SUPPORT.md")!)
                 }
             }
-            .navigationTitle("Mercury Protection")
-            .tint(.mint)
+            .navigationTitle("XNoCall")
+            .tint(.cyan)
+            .preferredColorScheme(.dark)
+            .scrollContentBackground(.hidden)
+            .background(Color(red: 0.025, green: 0.035, blue: 0.09))
             .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Done") { inputFocused = false } } }
             .sheet(item: $help) { topic in
                 NavigationStack {
@@ -132,7 +145,7 @@ struct ContentView: View {
         inputFocused = false
         CXCallDirectoryManager.sharedInstance.openSettings { error in
             DispatchQueue.main.async {
-                message = error.map { "Could not open Phone settings: \($0.localizedDescription). Open Settings → Apps → Phone → Call Blocking & Identification." } ?? "Enable CallBlock Mercury Pro in Phone settings, then return here and refresh."
+                message = error.map { "Could not open Phone settings: \($0.localizedDescription). Open Settings → Apps → Phone → Call Blocking & Identification." } ?? "Enable XNoCall in Phone settings, then return here and refresh."
             }
         }
     }

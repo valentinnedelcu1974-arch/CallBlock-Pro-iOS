@@ -4,10 +4,10 @@ final class MercuryWorkspaceTests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
         let launch = XCTAttachment(screenshot: app.screenshot())
-        launch.name = "Mercury-Protection"
+        launch.name = "XNoCall-Protection"
         launch.lifetime = .keepAlways
         add(launch)
-        app.buttons["Mercury Workspace · Inspect, import, export"].tap()
+        app.buttons["Rule Lab · Inspect, import, export"].tap()
         let editor = app.textViews["Numbers to inspect"]
         XCTAssertTrue(editor.waitForExistence(timeout: 10))
         editor.tap()
@@ -16,7 +16,7 @@ final class MercuryWorkspaceTests: XCTestCase {
         XCTAssertTrue(summary.waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Apply ")).firstMatch.isEnabled)
         let validation = XCTAttachment(screenshot: app.screenshot())
-        validation.name = "Mercury-Import-Validation"
+        validation.name = "XNoCall-Import-Validation"
         validation.lifetime = .keepAlways
         add(validation)
     }

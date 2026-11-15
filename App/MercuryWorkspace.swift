@@ -14,7 +14,7 @@ struct MercuryWorkspace: View {
     var body: some View {
         Form {
             Section {
-                Label("MERCURY · LIST WORKSPACE", systemImage: "waveform.path.ecg").font(.headline).foregroundStyle(.mint)
+                Label("XNOCALL · RULE LAB", systemImage: "waveform.path.ecg").font(.headline).foregroundStyle(.mint)
                 Text("Review each entry before it reaches your phone blocking list. Processing stays on this device.")
             }
             Section("1 · Import and inspect") {
@@ -50,7 +50,7 @@ struct MercuryWorkspace: View {
             if !result.isEmpty { Section("Result") { Text(result).textSelection(.enabled) } }
         }
         .id(revision)
-        .navigationTitle("Mercury Workspace")
+        .navigationTitle("Rule Lab")
         .fileImporter(isPresented: $importing, allowedContentTypes: [.plainText]) { outcome in
             do {
                 let url = try outcome.get()

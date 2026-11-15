@@ -1,7 +1,7 @@
-# CallBlock Mercury Pro — Privacy Policy
+# XNoCall — Privacy Policy
 Effective date: 12 November 2026
 
-CallBlock Mercury Pro is provided by Iulian Valentin Nedelcu. Contact: valentin.nedelcu@icloud.com.
+XNoCall is provided by Iulian Valentin Nedelcu. Contact: valentin.nedelcu@icloud.com.
 
 ## Information stored on your iPhone
 The complete telephone numbers you enter are stored locally in the app's shared iOS App Group so its Call Directory extension can provide the blocking list to iOS. They are not uploaded to the developer or a developer-operated server. Remove a number using its trash button. Removing the app removes its local app data, subject to Apple's backup and restore behavior.
@@ -19,4 +19,7 @@ If you email support, we receive the email address and information you choose to
 The app does not knowingly collect personal information from children. This page will be updated if the app's data practices change. Contact valentin.nedelcu@icloud.com with privacy questions or requests.
 
 ## User-directed import and export
-Mercury Workspace can read a text file you select using the iOS document picker. File contents are processed locally. Export opens the iOS share sheet with your saved telephone numbers. If you choose a third-party recipient or destination, that service receives the exported data under its own privacy terms. The developer does not receive the export automatically.
+Rule Lab can read a text file you select using the iOS document picker. File contents are processed locally. Export opens the iOS share sheet with your saved telephone numbers. If you choose a third-party recipient or destination, that service receives the exported data under its own privacy terms. The developer does not receive the export automatically.
+
+## Private rule notebook
+Optional labels, reasons and decision notes are stored locally in the app. They are not sent to us or to a caller-identification service. Removing a saved number in Protection also removes its private note. Number-list exports contain numbers only.
