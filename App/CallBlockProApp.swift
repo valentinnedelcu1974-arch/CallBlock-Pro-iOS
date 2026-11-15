@@ -150,14 +150,23 @@ struct ContentView: View {
         }
     }
     private func checkExtension() {
+#if targetEnvironment(simulator)
+        extensionEnabled = false
+        message = "Telephone blocking requires a physical iPhone. Your saved rules, Rule Lab and private notebook are available in the simulator."
+#else
         CXCallDirectoryManager.sharedInstance.getEnabledStatusForExtension(withIdentifier: extensionID) { status, error in
             DispatchQueue.main.async {
                 extensionEnabled = status == .enabled
-                if let error { message = "Could not check extension: \(error.localizedDescription)" }
+                if error != nil { message = "Protection status is unavailable. Enable XNoCall in Settings → Apps → Phone → Call Blocking & Identification, then return and refresh." }
             }
         }
+#endif
     }
     private func refresh() {
+#if targetEnvironment(simulator)
+        inputFocused = false
+        message = "Your rules are saved. Applying telephone blocking requires a physical iPhone, an enabled extension and an active subscription."
+#else
         guard !refreshing else { refreshPending = true; return }
         inputFocused = false; refreshing = true
         CXCallDirectoryManager.sharedInstance.reloadExtension(withIdentifier: extensionID) { error in
@@ -168,6 +177,7 @@ struct ContentView: View {
                 if refreshPending { refreshPending = false; refresh() }
             }
         }
+#endif
     }
     @MainActor private func loadProducts() async {
         guard !storeBusy else { return }; storeBusy = true

@@ -54,10 +54,10 @@ workflows:
           exit "$TEST_STATUS"
       - name: Apply dedicated profiles
         script: xcode-project use-profiles
-      - name: Archive and export XNoCall 1.1 build 6
+      - name: Archive and export XNoCall 1.1 build 7
         script: |
           set -euo pipefail
-          xcode-project build-ipa --project CallBlockPro.xcodeproj --scheme CallBlockPro --archive-flags='CURRENT_PROJECT_VERSION=6'
+          xcode-project build-ipa --project CallBlockPro.xcodeproj --scheme CallBlockPro --archive-flags='CURRENT_PROJECT_VERSION=7'
     artifacts:
       - build/ios/ipa/*.ipa
       - build/screenshots/**

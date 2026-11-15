@@ -60,7 +60,7 @@ struct RuleNotebook: View {
                         selected = number; label = entry.label; reason = entry.reason; note = entry.note; saved = false
                     } label: {
                         VStack(alignment: .leading, spacing: 5) {
-                            Text("+\(number)").font(.headline).foregroundStyle(.primary)
+                            Text("+" + String(number)).font(.headline).foregroundStyle(.primary)
                             let entry = RuleNotes.read(number)
                             Text(entry.label.isEmpty ? "Add a private label" : entry.label).foregroundStyle(.cyan)
                             Text(entry.reason).font(.caption).foregroundStyle(.secondary)
@@ -78,7 +78,7 @@ struct RuleNotebook: View {
         .sheet(isPresented: Binding(get: { selected != nil }, set: { if !$0 { selected = nil } })) {
             NavigationStack {
                 Form {
-                    Section("+\(selected ?? 0)") {
+                    Section("+" + String(selected ?? 0)) {
                         TextField("Private label", text: $label).accessibilityIdentifier("ruleLabel")
                         Picker("Reason", selection: $reason) {
                             ForEach(["Unwanted call", "Repeated sales", "Personal choice", "Other"], id: \.self) { Text($0) }
