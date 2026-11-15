@@ -30,7 +30,7 @@ struct XNoCallHero: View {
                 .opacity(pulse ? 1 : 0.45)
         }
         .onAppear {
-            guard !reduceMotion else { return }
+            guard !reduceMotion && !ProcessInfo.processInfo.arguments.contains("-ui-testing") else { return }
             withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) { pulse = true }
         }
     }

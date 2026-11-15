@@ -2,6 +2,7 @@ import XCTest
 final class MercuryWorkspaceTests: XCTestCase {
     func testInvalidImportMustBeCorrectedBeforeApply() {
         let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
         app.launch()
         let launch = XCTAttachment(screenshot: app.screenshot())
         launch.name = "XNoCall-Protection"
