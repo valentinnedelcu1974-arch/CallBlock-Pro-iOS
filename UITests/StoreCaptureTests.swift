@@ -7,6 +7,7 @@ final class StoreCaptureTests: XCTestCase {
         continueAfterFailure = false
         let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "CallBlockProducts", withExtension: "storekit"))
         session = try SKTestSession(contentsOf: url)
+        session.resetToDefaultState()
         session.disableDialogs = true
         session.timeRate = .realTime
         session.clearTransactions()

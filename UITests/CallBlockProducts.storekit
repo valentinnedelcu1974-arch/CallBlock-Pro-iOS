@@ -17,11 +17,11 @@
       "localizations": [
         {
           "description": "Telephone call blocking",
-          "displayName": "CallBlock Pro Premium",
+          "displayName": "XNoCall Premium",
           "locale": "en_US"
         }
       ],
-      "name": "CallBlock Pro Premium",
+      "name": "XNoCall Premium",
       "subscriptions": [
         {
           "adHocOffers": [],
@@ -39,13 +39,13 @@
           "localizations": [
             {
               "description": "Activate your iOS telephone call blocking list.",
-              "displayName": "CallBlock Pro Annual",
+              "displayName": "XNoCall Annual",
               "locale": "en_US"
             }
           ],
           "productID": "callblockpro.annual",
           "recurringSubscriptionPeriod": "P1Y",
-          "referenceName": "CallBlock Pro Annual",
+          "referenceName": "XNoCall Annual",
           "subscriptionGroupID": "22559518",
           "type": "RecurringSubscription",
           "winBackOffers": []

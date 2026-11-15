@@ -14,7 +14,7 @@ workflows:
       - name: Run unit and interface tests
         script: |
           set -euo pipefail
-          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import sys,json; d=json.load(sys.stdin); print(next(x["udid"] for a in d["devices"].values() for x in a if "iPhone" in x["name"]))')
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import sys,json; d=json.load(sys.stdin); print(next(x["udid"] for a in d["devices"].values() for x in a if "Pro Max" in x["name"]))')
           xcodebuild test -project CallBlockPro.xcodeproj -scheme CallBlockPro -destination "platform=iOS Simulator,id=$DEVICE" -resultBundlePath build/XNoCall.xcresult CODE_SIGNING_ALLOWED=NO
           mkdir -p build/screenshots
           xcrun xcresulttool export attachments --path build/XNoCall.xcresult --output-path build/screenshots
@@ -44,7 +44,7 @@ workflows:
       - name: Verify interface and capture current screens
         script: |
           set -euo pipefail
-          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import sys,json; d=json.load(sys.stdin); print(next(x["udid"] for a in d["devices"].values() for x in a if "iPhone" in x["name"]))')
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import sys,json; d=json.load(sys.stdin); print(next(x["udid"] for a in d["devices"].values() for x in a if "Pro Max" in x["name"]))')
           xcodebuild test -project CallBlockPro.xcodeproj -scheme CallBlockPro -destination "platform=iOS Simulator,id=$DEVICE" -resultBundlePath build/XNoCall.xcresult CODE_SIGNING_ALLOWED=NO
           mkdir -p build/screenshots
           xcrun xcresulttool export attachments --path build/XNoCall.xcresult --output-path build/screenshots
