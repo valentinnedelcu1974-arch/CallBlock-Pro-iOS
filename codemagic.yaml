@@ -21,3 +21,37 @@ workflows:
     artifacts:
       - build/screenshots/**
       - build/XNoCall.xcresult/**
+  xnocall-testflight:
+    name: XNoCall - signed TestFlight release
+    max_build_duration: 25
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: XStarCadAppStore
+    environment:
+      xcode: latest
+      ios_signing:
+        provisioning_profiles:
+          - xnocall_appstore
+          - xnocall_directory_appstore
+        certificates:
+          - xstarcad_existing_distribution
+    scripts:
+      - name: Generate XNoCall project
+        script: |
+          set -euo pipefail
+          brew install xcodegen
+          xcodegen generate
+      - name: Apply dedicated profiles
+        script: xcode-project use-profiles
+      - name: Archive and export XNoCall 1.1 build 5
+        script: |
+          set -euo pipefail
+          xcode-project build-ipa --project CallBlockPro.xcodeproj --scheme CallBlockPro --archive-flags='CURRENT_PROJECT_VERSION=5'
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
