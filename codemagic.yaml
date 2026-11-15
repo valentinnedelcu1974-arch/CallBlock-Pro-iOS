@@ -54,13 +54,51 @@ workflows:
           exit "$TEST_STATUS"
       - name: Apply dedicated profiles
         script: xcode-project use-profiles
-      - name: Archive and export XNoCall 1.1 build 7
+      - name: Archive and export XNoCall 1.1 build 8
         script: |
           set -euo pipefail
-          xcode-project build-ipa --project CallBlockPro.xcodeproj --scheme CallBlockPro --archive-flags='CURRENT_PROJECT_VERSION=7'
+          xcode-project build-ipa --project CallBlockPro.xcodeproj --scheme CallBlockPro --archive-flags='CURRENT_PROJECT_VERSION=8'
     artifacts:
       - build/ios/ipa/*.ipa
       - build/screenshots/**
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
+  xnocall-final-package:
+    name: XNoCall - package verified code and final extension name
+    max_build_duration: 15
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: XStarCadAppStore
+    environment:
+      xcode: '26.2'
+      ios_signing:
+        provisioning_profiles:
+          - xnocall_appstore
+          - xnocall_directory_appstore
+        certificates:
+          - xstarcad_existing_distribution
+    scripts:
+      - name: Verify identical tested Swift sources
+        script: |
+          set -euo pipefail
+          git fetch --no-tags origin 388710efce8c8d22f2e1443ac2f1acde1628f828
+          git diff --exit-code 388710efce8c8d22f2e1443ac2f1acde1628f828 -- ':(glob)**/*.swift'
+      - name: Generate and apply dedicated profiles
+        script: |
+          set -euo pipefail
+          brew install xcodegen
+          xcodegen generate
+          xcode-project use-profiles
+      - name: Archive XNoCall build 8
+        script: |
+          set -euo pipefail
+          xcode-project build-ipa --project CallBlockPro.xcodeproj --scheme CallBlockPro --archive-flags='CURRENT_PROJECT_VERSION=8'
+    artifacts:
+      - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
