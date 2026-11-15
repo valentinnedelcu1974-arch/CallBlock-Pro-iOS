@@ -23,3 +23,6 @@ Downloading the app and preparing or editing a saved number list are free. Activ
 
 ## Rule Lab
 Open **Rule Lab · Inspect, import, export**. Paste one full international number per line or select a UTF-8 plain text file up to 1 MB. Imports allow at most 10,000 nonempty lines. Duplicate entries are consolidated. Invalid lines must be corrected or removed before applying new numbers. After saving, return to Protection and refresh. The saved-rule inspector checks only your own list, not a spam database or incoming call. Export shares personal phone numbers to the destination you choose.
+
+## Private rule notebook
+Open **Rule notebook · Labels and decisions**, select a saved number, and record a private label, reason and decision notes. Tap **Save decision**. Search by label or number. Notes are stored locally, are free to use, and do not identify a caller. Removing a number in Protection removes its note. Number exports do not include notes.

@@ -1,7 +1,9 @@
-# XNoCall — candidate build 4
+# XNoCall — review preparation
 
-This candidate keeps the existing bundle identifiers and subscription product. It adds a local number-list workspace: text import, explicit preview of valid/invalid/duplicate entries, all-valid confirmation before applying, saved-rule inspection and export. It uses original Mercury telephone artwork without WhatsApp branding.
+This is an update of the existing app and subscription, not a separate repackaged listing. The revision adds a private searchable decision notebook with local labels/reasons/notes, an original smartphone/X visual identity, an accessible spectrum dashboard and explicit simulator limitations. Rule Lab supports validation before applying imports, duplicate consolidation, local rule inspection and number export.
 
-Validation required before App Review: macOS build and unit tests, UI tests for import/inspection/export, physical iPhone blocking with enabled Call Directory and sandbox subscription, actual current screenshots, updated App Store title/description/subscription artwork and review notes. This document does not assert approval or that the 4.3(a) concern is resolved.
+Review walkthrough: add a full international number in Protection; open Rule notebook, save a label/reason/note, and search for the label. Removing the number removes its notebook entry. In Rule Lab paste a valid number twice plus an invalid line; Apply is disabled until the invalid line is corrected or removed. Exports contain phone numbers, not notes.
 
-Review walkthrough: open Rule Lab; paste +447700900123 twice and an invalid line; confirm Apply is disabled. Remove the invalid line, apply the unique entry, then inspect that number. Export the list. In Protection, enable the extension, obtain sandbox subscription access and refresh. Test real incoming-call behavior on a physical iPhone.
+StoreKit tests on Xcode 26.2 verified trial purchase, restore and expiry in the local Apple test environment. Physical incoming-call blocking still requires an enabled Call Directory extension on an actual iPhone. No third-party spam database, prefix wildcards, WhatsApp blocking, call history or blocked-call counter is claimed.
+
+Before submission: verify the final candidate's automated tests, signing, upload and processing; select that exact build; replace screenshots and subscription review evidence with current captures. Do not claim that 4.3(a) is resolved or guarantee approval.
